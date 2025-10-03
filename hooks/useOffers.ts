@@ -1,5 +1,5 @@
-import { api } from '@/providers/AuthProvider';
-import { useEffect, useState } from 'react';
+import { api } from "@/providers/AuthProvider";
+import { useEffect, useState } from "react";
 
 // Tipos basados en tu API
 export interface Oferta {
@@ -36,7 +36,7 @@ export interface Oferta {
   };
   usuario?: {
     id?: string;
-    nombre?: string;
+    nombreCompleto?: string;
     email?: string;
     calificacionPromedio?: number;
   };
@@ -63,14 +63,15 @@ export const useOffers = (): UseOffersResult => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // El token ya está en los headers, no necesitas configurarlo
       const response = await api.ofertas.obtenerOfertasActivas();
-      
+
       setOfertas(response.data || []);
+      // console.log("Ofertas fetched:", response.data);
     } catch (err: any) {
-      console.error('Error fetching ofertas:', err);
-      setError(err.response?.data?.message || 'Error al cargar las ofertas');
+      console.error("Error fetching ofertas:", err);
+      setError(err.response?.data?.message || "Error al cargar las ofertas");
     } finally {
       setLoading(false);
     }
@@ -100,15 +101,15 @@ export const useMyOffers = (): UseOffersResult => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Asume que tienes un endpoint para obtener las ofertas del usuario
       // Si no existe, puedes filtrar las ofertas activas por usuarioId
       const response = await api.ofertas.obtenerMisOfertas();
-      
+
       setOfertas(response.data || []);
     } catch (err: any) {
-      console.error('Error fetching my ofertas:', err);
-      setError(err.response?.data?.message || 'Error al cargar tus ofertas');
+      console.error("Error fetching my ofertas:", err);
+      setError(err.response?.data?.message || "Error al cargar tus ofertas");
     } finally {
       setLoading(false);
     }
@@ -137,9 +138,9 @@ export const useMyOffers = (): UseOffersResult => {
 //     try {
 //       setLoading(true);
 //       setError(null);
-      
+
 //       const response = await api.ofertas.crearOferta(data);
-      
+
 //       return response.data;
 //     } catch (err: any) {
 //       console.error('Error creating oferta:', err);

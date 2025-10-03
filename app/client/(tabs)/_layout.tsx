@@ -1,3 +1,4 @@
+import { HeaderRightView } from "@/components/custom/HeaderRightView";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
@@ -5,7 +6,11 @@ import { View } from "react-native";
 
 export default function TabsLayout() {
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={{
+        headerRight: () => <View className="mr-4"><HeaderRightView/></View>,
+      }}
+    >
       <Tabs.Screen
         name="home/index"
         options={{
@@ -130,16 +135,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-      name="ofertas/index"
-      options={{
-        href:null,
-      }}
+        name="ofertas/index"
+        options={{
+          href: null,
+        }}
       />
       <Tabs.Screen
-      name="servicios/index"
-      options={{
-        href:null,
-      }}
+        name="servicios/index"
+        options={{
+          href: null,
+        }}
       />
     </Tabs>
   );
