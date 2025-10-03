@@ -1,6 +1,6 @@
-import { api } from "@/providers/AuthProvider";
+import { api, useAuth } from "@/providers/AuthProvider";
 import CedulaValidationService, {
-    PersonaData,
+  PersonaData,
 } from "@/services/CedulaValidationService";
 import { useState } from "react";
 
@@ -158,8 +158,10 @@ export const useRegistration = (): UseRegistrationResult => {
 
 /**
  * Hook para manejar el formulario completo de registro
+ * Ahora usa el método signUp del AuthProvider que incluye inicio de sesión automático
  */
 export const useCompleteRegistration = () => {
+  const { signUp } = useAuth(); // Usar el método del provider
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,25 +178,26 @@ export const useCompleteRegistration = () => {
       setLoading(true);
       setError(null);
 
-      const response = await api.auth.registrarUsuario(data);
+      await signUp(data);
 
-      return response.data;
     } catch (err: any) {
       console.error("Registration error:", err);
-      const errorMsg = Array.isArray(err.response?.data?.message)
-        ? err.response.data.message.join(", ")
-        : err.response?.data?.message || "Error al registrarse";
-
+      const errorMsg = err.message || "Error al registrarse";
       setError(errorMsg);
-      throw new Error(errorMsg);
+      throw err;
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearError = () => {
+    setError(null);
   };
 
   return {
     register,
     loading,
     error,
+    clearError,
   };
 };

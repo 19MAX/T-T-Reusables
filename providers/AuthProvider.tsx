@@ -1,11 +1,11 @@
-import { Api } from "@/services/api/client/Api"; // Ajusta la ruta según tu estructura
+import { Api } from "@/services/api/client/Api";
 import * as SecureStore from "expo-secure-store";
 import React, {
-    createContext,
-    ReactNode,
-    useContext,
-    useEffect,
-    useState,
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
 
 interface AuthContextType {
@@ -110,14 +110,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.auth.registrarUsuario(data);
 
-      if (response.data.email) {
-        // Después del registro, iniciar sesión automáticamente
+      const usuario = (response.data as any).usuario;
+
+      if (usuario && (usuario.id || usuario.email)) {
+        // Después del registro exitoso, iniciar sesión automáticamente
         await signIn(data.email, data.password);
       } else {
         throw new Error("Invalid response from server");
       }
     } catch (error: any) {
       console.error("Sign up error:", error);
+
+      if (error.message === "Invalid response from server") {
+        throw error;
+      }
+
       const errorMessage = error.response?.data?.message;
       if (Array.isArray(errorMessage)) {
         throw new Error(errorMessage.join(", "));
