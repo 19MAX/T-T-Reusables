@@ -21,10 +21,10 @@ export interface Oferta {
     modalidad?: string;
   };
   estado?: string;
-  fechaCreacion?: string;
-  fechaActualizacion?: string;
-  fechaInicioOferta?: string;
-  fechaFinOferta?: string;
+  fechaCreacion?: string | { _seconds: number; _nanoseconds: number };
+  fechaActualizacion?: string | { _seconds: number; _nanoseconds: number };
+  fechaInicioOferta?: string | { _seconds: number; _nanoseconds: number };
+  fechaFinOferta?: string | { _seconds: number; _nanoseconds: number };
   servicio?: {
     id?: string;
     titulo?: string;
@@ -39,6 +39,8 @@ export interface Oferta {
     nombreCompleto?: string;
     email?: string;
     calificacionPromedio?: number;
+    ci?: string;
+    fotoPerfil?: string | null;
   };
 }
 
@@ -49,10 +51,15 @@ interface UseOffersResult {
   refetch: () => Promise<void>;
 }
 
+interface UseOfferDetailResult {
+  oferta: Oferta | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
 /**
  * Hook para obtener las ofertas activas
- * El token de autenticación ya está configurado en el API client,
- * por lo que no necesitas pasarlo manualmente
  */
 export const useOffers = (): UseOffersResult => {
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
@@ -63,12 +70,8 @@ export const useOffers = (): UseOffersResult => {
     try {
       setLoading(true);
       setError(null);
-
-      // El token ya está en los headers, no necesitas configurarlo
       const response = await api.ofertas.obtenerOfertasActivas();
-
       setOfertas(response.data || []);
-      // console.log("Ofertas fetched:", response.data);
     } catch (err: any) {
       console.error("Error fetching ofertas:", err);
       setError(err.response?.data?.message || "Error al cargar las ofertas");
@@ -90,71 +93,43 @@ export const useOffers = (): UseOffersResult => {
 };
 
 /**
- * Hook para obtener las ofertas del usuario autenticado
+ * Hook para obtener el detalle de una oferta específica
  */
-export const useMyOffers = (): UseOffersResult => {
-  const [ofertas, setOfertas] = useState<Oferta[]>([]);
+export const useOfferDetail = (id: string): UseOfferDetailResult => {
+  const [oferta, setOferta] = useState<Oferta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMyOfertas = async () => {
+  const fetchOfertaDetail = async () => {
+    if (!id) {
+      setError("ID de oferta no proporcionado");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-
-      // Asume que tienes un endpoint para obtener las ofertas del usuario
-      // Si no existe, puedes filtrar las ofertas activas por usuarioId
-      const response = await api.ofertas.obtenerMisOfertas();
-
-      setOfertas(response.data || []);
+      const response = await api.ofertas.obtenerOfertaPorId(id);
+      setOferta(response.data || null);
     } catch (err: any) {
-      console.error("Error fetching my ofertas:", err);
-      setError(err.response?.data?.message || "Error al cargar tus ofertas");
+      console.error("Error fetching oferta detail:", err);
+      setError(
+        err.response?.data?.message || "Error al cargar el detalle de la oferta"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMyOfertas();
-  }, []);
+    fetchOfertaDetail();
+  }, [id]);
 
   return {
-    ofertas,
+    oferta,
     loading,
     error,
-    refetch: fetchMyOfertas,
+    refetch: fetchOfertaDetail,
   };
 };
-
-/**
- * Hook para crear una nueva oferta
- */
-// export const useCreateOffer = () => {
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   const createOffer = async (data: Partial<Oferta>) => {
-//     try {
-//       setLoading(true);
-//       setError(null);
-
-//       const response = await api.ofertas.crearOferta(data);
-
-//       return response.data;
-//     } catch (err: any) {
-//       console.error('Error creating oferta:', err);
-//       const errorMsg = err.response?.data?.message || 'Error al crear la oferta';
-//       setError(errorMsg);
-//       throw new Error(errorMsg);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return {
-//     createOffer,
-//     loading,
-//     error,
-//   };
-// };

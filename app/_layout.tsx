@@ -58,6 +58,7 @@ const IitialLayout = () => {
                 },
               }}
               />
+              {/* <Stack.Screen name="" /> */}
             </Stack.Protected>
 
             <Stack.Protected guard={!isAuthenticated}>

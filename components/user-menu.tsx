@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import type { TriggerRef } from '@rn-primitives/popover';
 import { LogOutIcon, PlusIcon, SettingsIcon } from 'lucide-react-native';
-import * as React from 'react';
+import { useRef } from 'react';
 import { View } from 'react-native';
 
 const USER = {
@@ -17,7 +17,7 @@ const USER = {
 };
 
 export function UserMenu() {
-  const popoverTriggerRef = React.useRef<TriggerRef>(null);
+  const popoverTriggerRef = useRef<TriggerRef>(null);
 
   async function onSignOut() {
     popoverTriggerRef.current?.close();
