@@ -1,3 +1,4 @@
+import AlertCustom from "@/components/custom/dialog/alertCustom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,13 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import {
-    Alert,
-    Image,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    ScrollView,
-    TouchableOpacity,
-    View,
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  RefreshControl,
+  ScrollView,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -95,7 +96,6 @@ function OfferDetailSkeleton() {
       >
         <View className="flex-row gap-3">
           <Skeleton className="h-12 flex-1 rounded-lg" />
-          <Skeleton className="h-12 flex-1 rounded-lg" />
         </View>
       </View>
     </View>
@@ -107,9 +107,10 @@ export default function OfferDetailScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
-  const { oferta, loading, error } = useOfferDetail(id);
+  const { oferta, loading, error, refetch } = useOfferDetail(id);
 
   const [showTraditionalHeader, setShowTraditionalHeader] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const IMAGE_HEIGHT = 320;
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -118,30 +119,17 @@ export default function OfferDetailScreen() {
     setShowTraditionalHeader(scrollY > threshold);
   };
 
-  const handleContact = () => {
-    if (oferta?.usuario?.email) {
-      Alert.alert(
-        "Contactar",
-        `¿Deseas contactar a ${oferta.usuario.nombreCompleto}?`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Contactar",
-            onPress: () => console.log("Contactar usuario"),
-          },
-        ]
-      );
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
-  const handleApply = () => {
-    Alert.alert("Aplicar a oferta", "¿Deseas aplicar a esta oferta?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Aplicar",
-        onPress: () => console.log("Aplicar a oferta"),
-      },
-    ]);
+  const onpress = () => {
+    console.log("Contactar");
   };
 
   if (loading) {
@@ -180,7 +168,6 @@ export default function OfferDetailScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Status bar dinámico */}
       <StatusBar
         style={
           showTraditionalHeader
@@ -192,7 +179,6 @@ export default function OfferDetailScreen() {
         animated
       />
 
-      {/* Header tradicional animado (aparece al scrollear) */}
       {showTraditionalHeader && (
         <View
           style={{
@@ -214,7 +200,7 @@ export default function OfferDetailScreen() {
               />
             </TouchableOpacity>
 
-            <Text className="flex-1 font-semibold text-lg" numberOfLines={1}>
+            <Text className="flex-1 font-semibold" variant={"small"} numberOfLines={1}>
               {oferta.titulo}
             </Text>
 
@@ -229,14 +215,13 @@ export default function OfferDetailScreen() {
         </View>
       )}
 
-      {/* Botones flotantes fijos (desaparecen al scrollear) */}
       {!showTraditionalHeader && (
         <View
           style={{
             position: "absolute",
-            top: insets.top + 8,
-            left: 16,
-            right: 16,
+            top: insets.top + 4,
+            left: 8,
+            right: 8,
             zIndex: 5,
             flexDirection: "row",
             justifyContent: "space-between",
@@ -261,8 +246,14 @@ export default function OfferDetailScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         bounces={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colorScheme === "dark" ? "#ffffff" : "#000000"}
+          />
+        }
       >
-        {/* Imagen principal con degradado superior */}
         <View style={{ height: IMAGE_HEIGHT }}>
           <Image
             source={{ uri: oferta.imagenUrl }}
@@ -270,7 +261,6 @@ export default function OfferDetailScreen() {
             resizeMode="cover"
           />
 
-          {/* Degradado superior solamente */}
           <LinearGradient
             colors={["rgba(0,0,0,0.6)", "transparent"]}
             style={{
@@ -283,20 +273,17 @@ export default function OfferDetailScreen() {
           />
         </View>
 
-        {/* Contenido principal */}
         <View
           className="px-4 py-6 bg-background"
           style={{ paddingBottom: 120 }}
         >
-          {/* Título y precio */}
           <View className="mb-6">
-            <Text className="text-2xl font-bold mb-2">{oferta.titulo}</Text>
+            <Text className="font-bold mb-2" variant={"small"}>{oferta.titulo}</Text>
             <Text className="text-3xl font-bold text-primary">
               ${oferta.precioPersonalizado}
             </Text>
           </View>
 
-          {/* Descripción */}
           <View className="mb-6">
             <Text className="text-lg font-semibold mb-3">Descripción</Text>
             <Text className="text-muted-foreground leading-6">
@@ -304,7 +291,6 @@ export default function OfferDetailScreen() {
             </Text>
           </View>
 
-          {/* Información del usuario */}
           <Card className="mb-6">
             <CardHeader>
               <Text className="text-lg font-semibold">Ofertante</Text>
@@ -340,7 +326,6 @@ export default function OfferDetailScreen() {
             </CardContent>
           </Card>
 
-          {/* Detalles del servicio */}
           <Card className="mb-6">
             <CardHeader>
               <Text className="text-lg font-semibold">
@@ -400,7 +385,6 @@ export default function OfferDetailScreen() {
             </CardContent>
           </Card>
 
-          {/* Disponibilidad */}
           <Card className="mb-6">
             <CardHeader>
               <Text className="text-lg font-semibold">Disponibilidad</Text>
@@ -438,7 +422,6 @@ export default function OfferDetailScreen() {
             </CardContent>
           </Card>
 
-          {/* Fechas de la oferta */}
           <Card className="mb-6">
             <CardHeader>
               <Text className="text-lg font-semibold">
@@ -465,33 +448,24 @@ export default function OfferDetailScreen() {
               </View>
             </CardContent>
           </Card>
-
-          {/* Estado */}
-          <View className="mb-6">
-            <Badge
-              variant={oferta.estado === "activa" ? "default" : "secondary"}
-              className="self-start"
-            >
-              <Text className="capitalize">{oferta.estado}</Text>
-            </Badge>
-          </View>
         </View>
       </ScrollView>
 
-      {/* Botones de acción fijos en la parte inferior */}
       <View
         className="absolute bottom-0 left-0 right-0 px-4 py-4 border-t border-border bg-background"
         style={{ paddingBottom: insets.bottom + 16 }}
       >
         <View className="flex-row gap-3">
-          <Button variant="outline" className="flex-1" onPress={handleContact}>
-            <Ionicons name="chatbubble-outline" size={18} />
-            <Text className="ml-2">Contactar</Text>
-          </Button>
-
-          <Button className="flex-1" onPress={handleApply}>
-            <Text>Aplicar Ahora</Text>
-          </Button>
+          <AlertCustom
+            title="Contactar"
+            description="Puedes contactar Puedes contactar Puedes contactar Puedes contactar Puedes contactar  "
+            titleConfirmation="Continuar"
+            titleCancel="Cancelar"
+            titleButton="Contactar"
+            onpressConfirmation={onpress}
+            variantButton="default"
+            iconName="diamond"
+          />
         </View>
       </View>
     </View>
