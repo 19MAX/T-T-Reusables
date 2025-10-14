@@ -8,57 +8,6 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 
-// // Datos de ejemplo para los trabajos populares
-// const popularJobs: Job[] = [
-//   {
-//     id: "1",
-//     title: "Limpieza de casa",
-//     description: "Servicio de limpieza profesional para tu hogar.",
-//     location: "Miraflores",
-//     price: 250,
-//     imageUrl:
-//       "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400",
-//   },
-//   {
-//     id: "2",
-//     title: "Paseador de perros",
-//     description: "Paseos divertidos y seguros para tu mejor amigo.",
-//     location: "San Isidro",
-//     price: 150,
-//     imageUrl: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400",
-//   },
-//   {
-//     id: "3",
-//     title: "Clases de Yoga",
-//     description: "Instructor certificado con 10 años de experiencia.",
-//     location: "Barranco",
-//     price: 200,
-//     imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400",
-//   },
-// ];
-
-// // Datos de ejemplo para nuevos anuncios
-// const newJobs: Job[] = [
-//   {
-//     id: "4",
-//     title: "Clases de Guitarra",
-//     description: "Aprende a tocar guitarra desde cero. Todas las edades.",
-//     location: "Surco",
-//     price: 300,
-//     imageUrl:
-//       "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400",
-//   },
-//   {
-//     id: "5",
-//     title: "Plomero Profesional",
-//     description: "Reparación de tuberías, instalaciones y mantenimiento.",
-//     location: "La Molina",
-//     price: 180,
-//     imageUrl:
-//       "https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=400",
-//   },
-// ];
-
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("1");
@@ -106,8 +55,6 @@ export default function HomeScreen() {
       <ScrollView>
         {/* Header Personalizado */}
         <CustomHomeHeader
-          // userName="Ana"
-          // userAvatar="https://lh3.googleusercontent.com/aida-public/AB6AXuAAGur66cMvxkls2PjqS_wc2dNVoTfKuAVGG9hg6QvuDqbR7Eq_dAPRCeUZXY2TYvUqwUm8H3xHWd3P-Uez2D5yXH6osgxrH3Xymvj8ctwU0yKfdSubd0kV_nXHzZsd93JMK0zeG0wxXaj8znYxnV-BzAjpVzVmTtt7MFuej-HezSc-AGxLM-D8M-jvNcimuLhnW_3tg4LbfOkVVVR0BJKGt4Fr7bCzzaUqfxkd7P_L7j8dzUb-iwTZSJxIbKb2ZQJ_5btokukqqnsv"
           onSearchChange={handleSearchChange}
           onNotificationPress={handleNotificationPress}
           onCreditsPress={handleCreditsPress}

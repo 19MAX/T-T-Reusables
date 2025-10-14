@@ -1,3 +1,4 @@
+import { queryClient } from "@/providers/QueryProvider";
 import { Api } from "@/services/api/client/Api";
 import * as SecureStore from "expo-secure-store";
 import React, {
@@ -95,6 +96,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setIsAuthenticated(true);
         setUser(userData as User);
+
+        // Limpiar el caché cuando inicia sesión un nuevo usuario
+        queryClient.clear();
       } else {
         throw new Error("Invalid response from server");
       }
@@ -140,7 +144,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      // Limpiar estado local independientemente del resultado
+      // Limpiar el caché de React Query
+      queryClient.clear();
+
+      // Limpiar estado local
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_KEY);
 

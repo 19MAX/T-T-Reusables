@@ -13,17 +13,19 @@ import { Button, ButtonProps } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
+import { ActivityIndicator, View } from "react-native";
 
 interface AlertProps {
   title?: string;
-  description?: string;
+  description?: string | null;
   titleConfirmation?: string;
   titleCancel?: string;
   titleButton?: string;
   variantButton?: ButtonProps["variant"];
-  iconName?: keyof typeof Ionicons.glyphMap; // 👈 nombre del icono
-  onpressConfirmation: () => void;
-  // onpressCancel?: () => void;
+  iconName?: keyof typeof Ionicons.glyphMap;
+  onpressConfirmation: () => void | Promise<void>;
+  loading?: boolean;
+  disabled?: boolean;
 }
 
 const AlertCustom = ({
@@ -35,19 +37,32 @@ const AlertCustom = ({
   variantButton,
   iconName,
   onpressConfirmation,
-  // onpressCancel,
+  loading = false,
+  disabled = false,
 }: AlertProps) => {
   const { colorScheme } = useColorScheme();
+  const isDisabled = disabled || loading;
 
   return (
     <AlertDialog className="flex-1">
       <AlertDialogTrigger asChild>
-        <Button className="flex-1" variant={variantButton}>
-          <Ionicons
-            name={iconName}
-            size={18}
-            color={colorScheme === "dark" ? "#000000" : "#ffffff"}
-          />
+        <Button
+          className="flex-1"
+          variant={variantButton}
+          disabled={isDisabled}
+        >
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={colorScheme === "dark" ? "#000000" : "#ffffff"}
+            />
+          ) : (
+            <Ionicons
+              name={iconName}
+              size={18}
+              color={colorScheme === "dark" ? "#000000" : "#ffffff"}
+            />
+          )}
           <Text>{titleButton}</Text>
         </Button>
       </AlertDialogTrigger>
@@ -58,12 +73,23 @@ const AlertCustom = ({
         </AlertDialogHeader>
         <AlertDialogFooter>
           {titleCancel && (
-            <AlertDialogCancel>
+            <AlertDialogCancel disabled={isDisabled}>
               <Text>{titleCancel}</Text>
             </AlertDialogCancel>
           )}
-          <AlertDialogAction onPress={onpressConfirmation}>
-            <Text>{titleConfirmation}</Text>
+          <AlertDialogAction
+            onPress={onpressConfirmation}
+            disabled={isDisabled}
+          >
+            <View className="flex-row items-center gap-2">
+              {loading && (
+                <ActivityIndicator
+                  size="small"
+                  color={colorScheme === "dark" ? "#ffffff" : "#000000"}
+                />
+              )}
+              <Text>{titleConfirmation}</Text>
+            </View>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
