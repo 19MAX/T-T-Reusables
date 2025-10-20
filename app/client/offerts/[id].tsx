@@ -1,7 +1,19 @@
+import { ImageViewer } from "@/components/custom/imageViewer";
+import OfferOwnerBar from "@/components/custom/OfferOwnerBar";
+import OfferContactBar from "@/components/skeltons/oferts/details/OfferContactBar";
+import { OfferDetailContent } from "@/components/skeltons/oferts/details/OfferDetailContent";
+import { OfferDetailHeader } from "@/components/skeltons/oferts/details/OfferDetailHeader";
+import { OfferDetailSkeleton } from "@/components/skeltons/oferts/details/OfferDetailSkeleton";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useConsumeCredit } from "@/hooks/credits/useConsumeCredit";
-import { useOfferDetail } from "@/hooks/useOffers";
+import {
+  useDeleteOferta,
+  useOfferDetail,
+  usePauseOferta,
+  useReactivateOferta,
+} from "@/hooks/useOffers";
+import { useAuth } from "@/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,27 +21,44 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   RefreshControl,
   ScrollView,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import OfferContactBar from "@/components/skeltons/oferts/details/OfferContactBar";
-import { OfferDetailContent } from "@/components/skeltons/oferts/details/OfferDetailContent";
-import { OfferDetailHeader } from "@/components/skeltons/oferts/details/OfferDetailHeader";
-import { OfferDetailSkeleton } from "@/components/skeltons/oferts/details/OfferDetailSkeleton";
-import { useAuth } from "@/providers/AuthProvider";
 export default function OfferDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
   const { oferta, loading, error, refetch } = useOfferDetail(id);
+  const {
+    deleteOferta,
+    loading: deleteLoading,
+    error: deleteError,
+  } = useDeleteOferta();
+  const {
+    pauseOferta,
+    loading: pauseLoading,
+    error: pauseError,
+  } = usePauseOferta();
+  const {
+    reactivateOferta,
+    loading: reactivateLoading,
+    error: reactivateError,
+  } = useReactivateOferta();
   const { user } = useAuth();
+
+  // Estado para el visor de imagen
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
   // Hook para consumir crédito
   const {
     loading: creditLoading,
@@ -54,6 +83,8 @@ export default function OfferDetailScreen() {
   const [showTraditionalHeader, setShowTraditionalHeader] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const IMAGE_HEIGHT = 320;
+  const esMiOferta = oferta?.usuario?.id === user?.id;
+  const estaPausada = oferta?.estado === "pausada";
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -78,6 +109,54 @@ export default function OfferDetailScreen() {
 
     const clienteId = user.id;
     await consumeCredit(clienteId);
+  };
+
+  const handlePauseOferta = async (ofertaId: string) => {
+    if (estaPausada) {
+      try {
+        setActionLoading(true);
+        await reactivateOferta(ofertaId);
+        Alert.alert("Éxito", "Oferta reactivada correctamente");
+        await refetch();
+      } catch (err) {
+        Alert.alert("Error", reactivateError || "Error al reactivar");
+      } finally {
+        setActionLoading(false);
+      }
+    } else {
+      try {
+        setActionLoading(true);
+        await pauseOferta(ofertaId);
+        Alert.alert("Éxito", "Oferta pausada correctamente");
+        await refetch();
+      } catch (error) {
+        Alert.alert("Error", pauseError || "Error al pausar");
+      } finally {
+        setActionLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteOferta = async (ofertaId: string) => {
+    try {
+      setActionLoading(true);
+      await deleteOferta(ofertaId);
+      Alert.alert("Éxito", "Oferta eliminada correctamente");
+      router.back();
+    } catch (err) {
+      Alert.alert("Error", deleteError || "Error al eliminar");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditPress = (ofertaId: string) => {
+    console.log("Navegar a editar oferta:", ofertaId);
+  };
+
+  // Nueva función para abrir el visor de imagen
+  const handleImagePress = () => {
+    setImageViewerVisible(true);
   };
 
   if (loading) {
@@ -126,10 +205,9 @@ export default function OfferDetailScreen() {
         }
         animated
       />
-
       <OfferDetailHeader
         showTraditionalHeader={showTraditionalHeader}
-        colorScheme={colorScheme === "dark" ?  "dark" : "light"}
+        colorScheme={colorScheme === "dark" ? "dark" : "light"}
         oferta={oferta}
         router={router}
       />
@@ -147,13 +225,17 @@ export default function OfferDetailScreen() {
           />
         }
       >
-        <View style={{ height: IMAGE_HEIGHT }}>
+        {/* Envolver la imagen en TouchableOpacity */}
+        <TouchableOpacity
+          style={{ height: IMAGE_HEIGHT }}
+          activeOpacity={0.9}
+          onPress={handleImagePress}
+        >
           <Image
             source={{ uri: oferta.imagenUrl }}
             style={{ width: "100%", height: IMAGE_HEIGHT }}
             resizeMode="cover"
           />
-
           <LinearGradient
             colors={["rgba(0,0,0,0.6)", "transparent"]}
             style={{
@@ -164,16 +246,35 @@ export default function OfferDetailScreen() {
               height: 150,
             }}
           />
-        </View>
-        <OfferDetailContent oferta={oferta} modalidadText={modalidadText} colorScheme={colorScheme} />
+        </TouchableOpacity>
+        <OfferDetailContent
+          oferta={oferta}
+          modalidadText={modalidadText}
+          colorScheme={colorScheme}
+        />
       </ScrollView>
-
-      <OfferContactBar
-        creditLoading={creditLoading}
-        creditSuccess={creditSuccess}
-        creditError={creditError}
-        creditMessage={creditMessage}
-        onConfirm={handleContactPress}
+      {esMiOferta ? (
+        <OfferOwnerBar
+          onEdit={() => handleEditPress(oferta.id!)}
+          onPause={() => handlePauseOferta(oferta.id!)}
+          onDelete={() => handleDeleteOferta(oferta.id!)}
+          estado={oferta.estado}
+          // disabled={actionLoading || deleteLoading || pauseLoading}
+        />
+      ) : (
+        <OfferContactBar
+          creditLoading={creditLoading}
+          creditSuccess={creditSuccess}
+          creditError={creditError}
+          creditMessage={creditMessage}
+          onConfirm={handleContactPress}
+        />
+      )}
+      {/* Agregar el visor de imagen */}
+      <ImageViewer
+        visible={imageViewerVisible}
+        imageUri={oferta.imagenUrl ?? ""}
+        onClose={() => setImageViewerVisible(false)}
       />
     </View>
   );

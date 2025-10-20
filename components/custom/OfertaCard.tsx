@@ -16,7 +16,7 @@ interface OfertaCardProps {
 // Skeleton para variante horizontal
 function OfertaCardHorizontalSkeleton() {
   return (
-    <View className="border-border border rounded-xl shadow-sm px-4 py-2 flex-row items-center mb-4">
+    <View className="border-border border rounded-xl px-4 py-2 flex-row items-center mb-4">
       <Skeleton className="w-16 h-16 rounded-lg" />
       <View className="flex-1 ml-4">
         <Skeleton className="h-4 w-3/4 mb-2" />

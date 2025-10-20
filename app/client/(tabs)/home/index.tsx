@@ -15,7 +15,7 @@ export default function HomeScreen() {
 
   const handleOfertaPress = (oferta: Oferta) => {
     console.log("Oferta seleccionada:", oferta);
-    router.push("client/offerts/" + oferta.id);
+    router.push(`/client/offerts/${oferta.id}`);
     // navigation.navigate('OfertaDetalle', { ofertaId: oferta.id });
   };
 

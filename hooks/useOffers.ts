@@ -133,3 +133,209 @@ export const useOfferDetail = (id: string): UseOfferDetailResult => {
     refetch: fetchOfertaDetail,
   };
 };
+
+/**
+ * Hook para obtener las ofertas del usuario autenticado
+ */
+export const useMyOffers = (): UseOffersResult => {
+  const [ofertas, setOfertas] = useState<Oferta[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMisOfertas = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.ofertas.obtenerMisOfertas();
+      setOfertas(response.data || []);
+    } catch (err: any) {
+      console.error("Error fetching mis ofertas:", err);
+      setError(err.response?.data?.message || "Error al cargar tus ofertas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMisOfertas();
+  }, []);
+
+  return {
+    ofertas,
+    loading,
+    error,
+    refetch: fetchMisOfertas,
+  };
+};
+
+type CreateOfertaData = {
+  servicioId: string;
+  titulo: string;
+  descripcionPersonalizada?: string;
+  precioPersonalizado?: number;
+  imagen?: any;
+  disponibilidad: {
+    diasSemana: string[];
+    horaInicio: string;
+    horaFin: string;
+  };
+  ubicacion: {
+    ciudad: string;
+    direccion?: string;
+    modalidad: "presencial" | "virtual" | "ambas";
+  };
+};
+
+export const useCreateOferta = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createOferta = async (data: CreateOfertaData) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append("servicioId", data.servicioId);
+      formData.append("titulo", data.titulo);
+
+      if (data.descripcionPersonalizada) {
+        formData.append(
+          "descripcionPersonalizada",
+          data.descripcionPersonalizada
+        );
+      }
+
+      if (data.precioPersonalizado) {
+        formData.append(
+          "precioPersonalizado",
+          data.precioPersonalizado.toString()
+        );
+      }
+
+      formData.append("disponibilidad", JSON.stringify(data.disponibilidad));
+      formData.append("ubicacion", JSON.stringify(data.ubicacion));
+
+      if (data.imagen) {
+        const imageUri = data.imagen.uri;
+        const imageName = imageUri.split("/").pop() || "image.jpg";
+        const imageType = data.imagen.mimeType || "image/jpeg";
+
+        formData.append("imagen", {
+          uri: imageUri,
+          name: imageName,
+          type: imageType,
+        } as any);
+      }
+
+      const response = await api.ofertas.crearOferta(formData as any);
+      return response.data;
+    } catch (err: any) {
+      const message = err.response?.data?.message || "Error al crear la oferta";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    createOferta,
+    loading,
+    error,
+  };
+};
+
+
+
+interface UseOfferActionResult {
+  loading: boolean;
+  error: string | null;
+}
+
+/**
+ * Hook para eliminar una oferta permanentemente
+ */
+export const useDeleteOferta = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteOferta = async (id: string): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      await api.ofertas.eliminarOferta(id);
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Error al eliminar la oferta";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    deleteOferta,
+    loading,
+    error,
+  };
+};
+
+/**
+ * Hook para pausar una oferta de servicio
+ */
+export const usePauseOferta = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pauseOferta = async (id: string): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      await api.ofertas.pausarOferta(id);
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Error al pausar la oferta";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    pauseOferta,
+    loading,
+    error,
+  };
+};
+
+/**
+ * Hook para reactivar una oferta pausada
+ */
+export const useReactivateOferta = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const reactivateOferta = async (id: string): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      await api.ofertas.activarOferta(id);
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Error al reactivar la oferta";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    reactivateOferta,
+    loading,
+    error,
+  };
+};

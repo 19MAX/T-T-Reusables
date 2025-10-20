@@ -1,4 +1,4 @@
-import { UserMenu } from "@/components/user-menu";
+import { HeaderRightView } from "@/components/custom/HeaderRightView";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { View } from "react-native";
@@ -7,7 +7,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerRight: () => <View className="mr-4"><UserMenu /></View>,
+        headerRight: () => <HeaderRightView />,
       }}
     >
       <Tabs.Screen
