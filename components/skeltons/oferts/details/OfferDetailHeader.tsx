@@ -1,5 +1,6 @@
-// screens/OfferDetail/OfferDetailHeader.tsx
 import { Text } from "@/components/ui/text";
+import { Oferta } from "@/hooks/useOffers";
+import { useAuth } from "@/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,9 +13,13 @@ export function OfferDetailHeader({
 }: {
   showTraditionalHeader: boolean;
   colorScheme: string;
-  oferta: any;
+  oferta: Oferta;
   router: any;
 }) {
+  const { user } = useAuth();
+
+  const esMiOferta = oferta?.usuario?.id === user?.id;
+
   const insets = useSafeAreaInsets();
 
   if (showTraditionalHeader) {
@@ -45,13 +50,15 @@ export function OfferDetailHeader({
           >
             {oferta.titulo}
           </Text>
-          <TouchableOpacity>
-            <Ionicons
-              name="heart-outline"
-              size={24}
-              color={colorScheme === "dark" ? "#ffffff" : "#000000"}
-            />
-          </TouchableOpacity>
+          {esMiOferta ? null : (
+            <TouchableOpacity>
+              <Ionicons
+                name="heart-outline"
+                size={24}
+                color={colorScheme === "dark" ? "#ffffff" : "#000000"}
+              />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -75,9 +82,11 @@ export function OfferDetailHeader({
       >
         <Ionicons name="arrow-back" size={24} color="#ffffff" />
       </TouchableOpacity>
-      <TouchableOpacity className="bg-black/50 backdrop-blur-sm rounded-full p-2">
-        <Ionicons name="heart-outline" size={24} color="#ffffff" />
-      </TouchableOpacity>
+      {esMiOferta ? null : (
+        <TouchableOpacity className="bg-black/50 backdrop-blur-sm rounded-full p-2">
+          <Ionicons name="heart-outline" size={24} color="#ffffff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

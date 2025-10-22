@@ -9,7 +9,6 @@ import { NAV_THEME } from "@/showcase/lib/theme";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "nativewind";
 
-import * as React from 'react';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 

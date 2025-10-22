@@ -4,8 +4,10 @@ import * as SecureStore from "expo-secure-store";
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -49,6 +51,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const isLoggingOut = useRef(false); // Prevenir múltiples llamadas a signOut
+
+  // Función signOut usando useCallback para que sea estable
+  const signOut = useCallback(async () => {
+    // Prevenir múltiples ejecuciones simultáneas
+    if (isLoggingOut.current) return;
+    isLoggingOut.current = true;
+
+    try {
+      // Intentar cerrar sesión en el servidor
+      await api.auth.cerrarSesion().catch(() => {
+        // Ignorar errores del servidor al cerrar sesión
+      });
+    } finally {
+      // Limpiar el caché de React Query
+      queryClient.clear();
+
+      // Limpiar estado local
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await SecureStore.deleteItemAsync(USER_KEY);
+
+      // Limpiar el header del cliente API
+      delete api.instance.defaults.headers.common["Authorization"];
+
+      setIsAuthenticated(false);
+      setUser(null);
+      isLoggingOut.current = false;
+    }
+  }, []);
+
+  // Configurar interceptor para manejar errores 401
+  useEffect(() => {
+    const interceptor = api.instance.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        // Si es un error 401 y no estamos ya cerrando sesión
+        if (
+          error.response?.status === 401 &&
+          isAuthenticated &&
+          !isLoggingOut.current
+        ) {
+          console.log("Token expirado, cerrando sesión...");
+          await signOut();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    // Limpiar el interceptor cuando el componente se desmonte
+    return () => {
+      api.instance.interceptors.response.eject(interceptor);
+    };
+  }, [isAuthenticated, signOut]);
 
   // Cargar estado de autenticación al iniciar
   useEffect(() => {
@@ -134,28 +189,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(errorMessage.join(", "));
       }
       throw new Error(errorMessage || "Error al registrarse");
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      // Intentar cerrar sesión en el servidor
-      await api.auth.cerrarSesion();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      // Limpiar el caché de React Query
-      queryClient.clear();
-
-      // Limpiar estado local
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      await SecureStore.deleteItemAsync(USER_KEY);
-
-      // Limpiar el header del cliente API
-      delete api.instance.defaults.headers.common["Authorization"];
-
-      setIsAuthenticated(false);
-      setUser(null);
     }
   };
 
