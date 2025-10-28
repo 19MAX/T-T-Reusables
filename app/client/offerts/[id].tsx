@@ -1,3 +1,4 @@
+// app/client/offerts/[id].tsx (ACTUALIZADO)
 import { ImageViewer } from "@/components/custom/imageViewer";
 import OfferOwnerBar from "@/components/custom/OfferOwnerBar";
 import OfferContactBar from "@/components/skeltons/oferts/details/OfferContactBar";
@@ -14,6 +15,7 @@ import {
   useReactivateOferta,
 } from "@/hooks/useOffers";
 import { useAuth } from "@/providers/AuthProvider";
+import { useToast } from "@/providers/ToastProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,7 +23,6 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import {
-  Alert,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -30,34 +31,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function OfferDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
-  const insets = useSafeAreaInsets();
   const { oferta, loading, error, refetch } = useOfferDetail(id);
-  const {
-    deleteOferta,
-    loading: deleteLoading,
-    error: deleteError,
-  } = useDeleteOferta();
-  const {
-    pauseOferta,
-    loading: pauseLoading,
-    error: pauseError,
-  } = usePauseOferta();
-  const {
-    reactivateOferta,
-    loading: reactivateLoading,
-    error: reactivateError,
-  } = useReactivateOferta();
+  const { deleteOferta } = useDeleteOferta();
+  const { pauseOferta } = usePauseOferta();
+  const { reactivateOferta } = useReactivateOferta();
   const { user } = useAuth();
+  const toast = useToast();
 
-  // Estado para el visor de imagen
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Hook para consumir crédito
   const {
@@ -69,19 +57,17 @@ export default function OfferDetailScreen() {
     resetState,
   } = useConsumeCredit(
     () => {
-      // Callback cuando el crédito se usa exitosamente
-      console.log("Crédito usado exitosamente");
+      toast.success("Crédito usado exitosamente");
       resetState();
-      // Aquí se puede navegar o hacer otra acción
     },
     (error) => {
-      // Callback cuando hay error
-      console.error("Error al usar crédito:", error);
+      toast.error(error || "Error al usar crédito");
     }
   );
 
   const [showTraditionalHeader, setShowTraditionalHeader] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
   const IMAGE_HEIGHT = 320;
   const esMiOferta = oferta?.usuario?.id === user?.id;
   const estaPausada = oferta?.estado === "pausada";
@@ -96,6 +82,9 @@ export default function OfferDetailScreen() {
     setIsRefreshing(true);
     try {
       await refetch();
+      toast.success("Oferta actualizada");
+    } catch (err) {
+      toast.error("Error al actualizar");
     } finally {
       setIsRefreshing(false);
     }
@@ -103,10 +92,9 @@ export default function OfferDetailScreen() {
 
   const handleContactPress = async () => {
     if (!user?.id) {
-      console.error("Usuario no autenticado");
+      toast.error("Usuario no autenticado");
       return;
     }
-
     const clienteId = user.id;
     await consumeCredit(clienteId);
   };
@@ -116,10 +104,10 @@ export default function OfferDetailScreen() {
       try {
         setActionLoading(true);
         await reactivateOferta(ofertaId);
-        Alert.alert("Éxito", "Oferta reactivada correctamente");
+        toast.success("Oferta reactivada correctamente");
         await refetch();
       } catch (err) {
-        Alert.alert("Error", reactivateError || "Error al reactivar");
+        toast.error("Error al reactivar la oferta");
       } finally {
         setActionLoading(false);
       }
@@ -127,10 +115,10 @@ export default function OfferDetailScreen() {
       try {
         setActionLoading(true);
         await pauseOferta(ofertaId);
-        Alert.alert("Éxito", "Oferta pausada correctamente");
+        toast.success("Oferta pausada correctamente");
         await refetch();
       } catch (error) {
-        Alert.alert("Error", pauseError || "Error al pausar");
+        toast.error("Error al pausar la oferta");
       } finally {
         setActionLoading(false);
       }
@@ -139,14 +127,14 @@ export default function OfferDetailScreen() {
 
   const handleDeleteOferta = async (ofertaId: string) => {
     try {
-      setActionLoading(true);
+      setDeleteLoading(true);
       await deleteOferta(ofertaId);
-      Alert.alert("Éxito", "Oferta eliminada correctamente");
+      toast.success("Oferta eliminada correctamente");
       router.back();
     } catch (err) {
-      Alert.alert("Error", deleteError || "Error al eliminar");
+      toast.error("Error al eliminar la oferta");
     } finally {
-      setActionLoading(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -154,7 +142,6 @@ export default function OfferDetailScreen() {
     console.log("Navegar a editar oferta:", ofertaId);
   };
 
-  // Nueva función para abrir el visor de imagen
   const handleImagePress = () => {
     setImageViewerVisible(true);
   };
@@ -225,7 +212,6 @@ export default function OfferDetailScreen() {
           />
         }
       >
-        {/* Envolver la imagen en TouchableOpacity */}
         <TouchableOpacity
           style={{ height: IMAGE_HEIGHT }}
           activeOpacity={0.9}
@@ -259,7 +245,8 @@ export default function OfferDetailScreen() {
           onPause={() => handlePauseOferta(oferta.id!)}
           onDelete={() => handleDeleteOferta(oferta.id!)}
           estado={oferta.estado}
-          // disabled={actionLoading || deleteLoading || pauseLoading}
+          loadingPause={actionLoading}
+          loadingDelete={deleteLoading}
         />
       ) : (
         <OfferContactBar
@@ -270,7 +257,6 @@ export default function OfferDetailScreen() {
           onConfirm={handleContactPress}
         />
       )}
-      {/* Agregar el visor de imagen */}
       <ImageViewer
         visible={imageViewerVisible}
         imageUri={oferta.imagenUrl ?? ""}

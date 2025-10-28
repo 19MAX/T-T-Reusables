@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import { router } from 'expo-router';
-import * as React from 'react';
+import { useRef } from 'react';
 import { Pressable, type TextInput, View } from 'react-native';
 
 interface SignInFormProps {
@@ -23,7 +23,7 @@ interface SignInFormProps {
 }
 
 export function SignInForm({email,password,onEmailChange,onPasswordChange,onSubmit,loading= false}: SignInFormProps) {
-  const passwordInputRef = React.useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();

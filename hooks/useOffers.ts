@@ -58,6 +58,22 @@ interface UseOfferDetailResult {
   refetch: () => Promise<void>;
 }
 
+// Store global para sincronizar refetch entre hooks
+let globalRefetchCallbacks: (() => Promise<void>)[] = [];
+
+export const registerRefetchCallback = (callback: () => Promise<void>) => {
+  globalRefetchCallbacks.push(callback);
+  return () => {
+    globalRefetchCallbacks = globalRefetchCallbacks.filter(
+      (cb) => cb !== callback
+    );
+  };
+};
+
+export const triggerGlobalRefetch = async () => {
+  await Promise.all(globalRefetchCallbacks.map((cb) => cb()));
+};
+
 /**
  * Hook para obtener las ofertas activas
  */
@@ -82,6 +98,10 @@ export const useOffers = (): UseOffersResult => {
 
   useEffect(() => {
     fetchOfertas();
+
+    // Registrar callback para refetch global
+    const unregister = registerRefetchCallback(fetchOfertas);
+    return unregister;
   }, []);
 
   return {
@@ -158,6 +178,10 @@ export const useMyOffers = (): UseOffersResult => {
 
   useEffect(() => {
     fetchMisOfertas();
+
+    // Registrar callback para refetch global
+    const unregister = registerRefetchCallback(fetchMisOfertas);
+    return unregister;
   }, []);
 
   return {
@@ -229,6 +253,10 @@ export const useCreateOferta = () => {
       }
 
       const response = await api.ofertas.crearOferta(formData as any);
+
+      // Trigger global refetch después de crear
+      await triggerGlobalRefetch();
+
       return response.data;
     } catch (err: any) {
       const message = err.response?.data?.message || "Error al crear la oferta";
@@ -245,8 +273,6 @@ export const useCreateOferta = () => {
     error,
   };
 };
-
-
 
 interface UseOfferActionResult {
   loading: boolean;
@@ -265,6 +291,9 @@ export const useDeleteOferta = () => {
       setLoading(true);
       setError(null);
       await api.ofertas.eliminarOferta(id);
+
+      // Trigger global refetch después de eliminar
+      await triggerGlobalRefetch();
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Error al eliminar la oferta";
@@ -294,6 +323,9 @@ export const usePauseOferta = () => {
       setLoading(true);
       setError(null);
       await api.ofertas.pausarOferta(id);
+
+      // Trigger global refetch después de pausar
+      await triggerGlobalRefetch();
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Error al pausar la oferta";
@@ -323,6 +355,9 @@ export const useReactivateOferta = () => {
       setLoading(true);
       setError(null);
       await api.ofertas.activarOferta(id);
+
+      // Trigger global refetch después de reactivar
+      await triggerGlobalRefetch();
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Error al reactivar la oferta";

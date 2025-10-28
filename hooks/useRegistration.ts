@@ -2,6 +2,8 @@ import { api, useAuth } from "@/providers/AuthProvider";
 import CedulaValidationService, {
   PersonaData,
 } from "@/services/CedulaValidationService";
+import { normalizeApiError } from "@/utils/normalizeApiError";
+import { normalizeApiSuccess } from "@/utils/normalizeApiSuccess";
 import { useState } from "react";
 
 interface RegistrationState {
@@ -161,9 +163,8 @@ export const useRegistration = (): UseRegistrationResult => {
  * Ahora usa el método signUp del AuthProvider que incluye inicio de sesión automático
  */
 export const useCompleteRegistration = () => {
-  const { signUp } = useAuth(); // Usar el método del provider
+  const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const register = async (data: {
     email: string;
@@ -176,28 +177,27 @@ export const useCompleteRegistration = () => {
   }) => {
     try {
       setLoading(true);
-      setError(null);
+      const response = await signUp(data);
 
-      await signUp(data);
+      console.log("Registro sin normalizar exitoso:", response);
 
+      const normalized = normalizeApiSuccess(response);
+      console.log("Registro normalizado exitoso:", normalized);
+
+      return normalized; //Devuelve el objeto normalizado
     } catch (err: any) {
-      console.error("Registration error:", err);
-      const errorMsg = err.message || "Error al registrarse";
-      setError(errorMsg);
-      throw err;
+
+      const normalized = normalizeApiError(err);
+      console.error("Registrando error en el hook:", normalized);
+
+      throw normalized;
     } finally {
       setLoading(false);
     }
   };
 
-  const clearError = () => {
-    setError(null);
-  };
-
   return {
     register,
     loading,
-    error,
-    clearError,
   };
 };

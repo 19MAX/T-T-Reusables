@@ -1,4 +1,3 @@
-import { DatePicker } from "@/components/custom/date-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,15 +10,58 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useCompleteRegistration } from "@/hooks/useRegistration";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
+
+import { useToast } from "@/providers/ToastProvider";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Controller, useForm } from "react-hook-form";
+import * as Yup from "yup";
+
+const validationSchema = Yup.object().shape({
+  email: Yup.string()
+    .required("El email es obligatorio")
+    .email("El email no es válido"),
+
+  password: Yup.string()
+    .required("La contraseña es obligatoria")
+    .min(8, "Debe tener al menos 8 caracteres")
+    .matches(
+      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Debe contener mayúscula, minúscula y número"
+    ),
+
+  confirmPassword: Yup.string()
+    .required("Confirma tu contraseña")
+    .oneOf([Yup.ref("password")], "Las contraseñas no coinciden"),
+
+  phone: Yup.string()
+    .required("El teléfono es obligatorio")
+    .matches(/^[0-9]{10}$/, "El teléfono debe tener 10 dígitos"),
+
+  birthDate: Yup.date()
+    .required("La fecha de nacimiento es obligatoria")
+    .test("edad-valida", "Debes tener entre 18 y 100 años", (value) => {
+      if (!value) return false;
+      const today = new Date();
+      const age =
+        today.getFullYear() -
+        value.getFullYear() -
+        (today <
+        new Date(today.getFullYear(), value.getMonth(), value.getDate())
+          ? 1
+          : 0);
+      return age >= 18 && age <= 100;
+    }),
+});
 
 export function RegisterDataForm() {
   const params = useLocalSearchParams<{
@@ -32,41 +74,50 @@ export function RegisterDataForm() {
     dateOfBirth: string;
   }>();
 
-  const { register, loading, error } = useCompleteRegistration();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm({
+    resolver: yupResolver(validationSchema),
+    defaultValues: {
+      email: params.email || "",
+      password: "",
+      confirmPassword: "",
+      phone: params.phone || "",
+      birthDate: undefined,
+    },
+  });
+
+  const { register, loading } = useCompleteRegistration();
+  const { promise } = useToast();
 
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const confirmPasswordInputRef = useRef<TextInput>(null);
   const phoneInputRef = useRef<TextInput>(null);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Prellenar datos si vienen de la validación de cédula (solo una vez)
   useEffect(() => {
     if (!isInitialized && params) {
-      setEmail(params.email || "");
-      setPhone(params.phone || "");
-
-      // Si viene fecha de nacimiento, convertirla a Date (corregir timezone)
       if (params.dateOfBirth) {
         try {
-          // Parsear como fecha local (sin conversión de timezone)
           const [year, month, day] = params.dateOfBirth.split("-").map(Number);
-          const date = new Date(year, month - 1, day); // month es 0-indexed
-
-          if (!isNaN(date.getTime())) {
-            setBirthDate(date);
+          const parsedDate = new Date(year, month - 1, day);
+          if (!isNaN(parsedDate.getTime())) {
+            setBirthDate(parsedDate);
+            // Actualiza el valor en react-hook-form
+            setValue("birthDate", parsedDate);
           }
-        } catch (e) {
-          console.error("Error parsing date:", e);
+        } catch (error) {
+          console.error("Error parsing date:", error);
         }
       }
-
       setIsInitialized(true);
     }
   }, [params, isInitialized]);
@@ -101,84 +152,39 @@ export function RegisterDataForm() {
     return date;
   }, []);
 
-  const validateForm = (): boolean => {
-    if (!email || !password || !confirmPassword || !phone || !birthDate) {
-      Alert.alert("Error", "Por favor completa todos los campos obligatorios");
-      return false;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert("Error", "Ingresa un correo electrónico válido");
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
-      return false;
-    }
-
-    if (password.length < 8) {
-      Alert.alert("Error", "La contraseña debe tener al menos 8 caracteres");
-      return false;
-    }
-
-    // Validar que tenga mayúscula, minúscula y número
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      Alert.alert(
-        "Error",
-        "La contraseña debe contener al menos una mayúscula, una minúscula y un número"
-      );
-      return false;
-    }
-
-    if (phone.length !== 10) {
-      Alert.alert("Error", "El teléfono debe tener 10 dígitos");
-      return false;
-    }
-
-    const edad = calculateAge(birthDate);
-    if (edad < 18 || edad > 100) {
-      Alert.alert("Error", "Debes tener entre 18 y 100 años para registrarte");
-      return false;
-    }
-
-    return true;
-  };
-
-  const onSubmit = async () => {
-    if (!validateForm()) return;
-
-    if (!birthDate || !params.ci) {
-      Alert.alert("Error", "Faltan datos requeridos");
-      return;
-    }
+  const onSubmit = handleSubmit(async (data) => {
+    const edad = calculateAge(data.birthDate);
 
     try {
-      const edad = calculateAge(birthDate);
-
-      await register({
-        ci: params.ci,
-        email: email.trim(),
-        password: password,
-        nombreCompleto: params.fullName || "Usuario",
-        numeroContacto: phone,
-        edad: edad,
-      });
-
-      Alert.alert(
-        "¡Registro exitoso!",
-        "¡Bienvenido! Tu cuenta ha sido creada correctamente. Recibes 5 créditos de bienvenida.",
-        [
-          {
-            text: "Comenzar",
-            onPress: () => router.replace("/client/(tabs)/home"),
+      await promise(
+        register({
+          ci: params.ci,
+          email: data.email.trim(),
+          password: data.password,
+          nombreCompleto: params.fullName || "Usuario",
+          numeroContacto: data.phone,
+          edad: edad,
+        }),
+        {
+          loading: "Creando tu cuenta...",
+          success: (res) => {
+            const usuario = res.data;
+            return usuario?.nombreCompleto
+              ? `¡Bienvenido ${usuario.nombreCompleto}! Recibes ${usuario.creditosDisponibles ?? 0} créditos de bienvenida`
+              : res.message || "Usuario creado exitosamente";
           },
-        ]
+          error: (err: any) =>{
+            return err.message || "No se pudo crear la cuenta";          },
+        }
       );
-    } catch (err: any) {
-      Alert.alert("Error", err.message || "Error al registrarse");
+
+      setTimeout(() => {
+        router.replace("/client/(tabs)/home");
+      }, 1500);
+    } catch (err) {
+      // El error ya fue manejado
     }
-  };
+  });
 
   const goToLogin = () => {
     router.replace("/auth/login");
@@ -204,96 +210,171 @@ export function RegisterDataForm() {
             {/* Email */}
             <View className="gap-1.5">
               <Label htmlFor="email">Email *</Label>
-              <Input
-                ref={emailInputRef}
-                id="email"
-                placeholder="m@example.com"
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-                returnKeyType="next"
-                value={email}
-                onChangeText={setEmail}
-                editable={!loading}
-                onSubmitEditing={() => passwordInputRef.current?.focus()}
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    ref={emailInputRef}
+                    id="email"
+                    placeholder="m@example.com"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    returnKeyType="next"
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                    onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  />
+                )}
               />
+
+              {errors.email && (
+                <Text className="text-red-500 text-xs">
+                  {errors.email.message}
+                </Text>
+              )}
             </View>
 
             {/* Contraseña */}
             <View className="gap-1.5">
               <Label htmlFor="password">Contraseña *</Label>
-              <Input
-                ref={passwordInputRef}
-                id="password"
-                secureTextEntry
-                returnKeyType="next"
-                value={password}
-                onChangeText={setPassword}
-                editable={!loading}
-                onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    ref={passwordInputRef}
+                    id="password"
+                    secureTextEntry
+                    returnKeyType="next"
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                    onSubmitEditing={() =>
+                      confirmPasswordInputRef.current?.focus()
+                    }
+                  />
+                )}
               />
               <Text className="text-xs text-muted-foreground">
                 Mínimo 8 caracteres, incluye mayúscula, minúscula y número
               </Text>
+
+              {errors.password && (
+                <Text className="text-red-500 text-xs">
+                  {errors.password.message}
+                </Text>
+              )}
             </View>
 
             {/* Confirmar contraseña */}
             <View className="gap-1.5">
               <Label htmlFor="confirm-password">Confirmar contraseña *</Label>
-              <Input
-                ref={confirmPasswordInputRef}
-                id="confirm-password"
-                secureTextEntry
-                returnKeyType="next"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                editable={!loading}
-                onSubmitEditing={() => phoneInputRef.current?.focus()}
+              <Controller
+                control={control}
+                name="confirmPassword"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    ref={confirmPasswordInputRef}
+                    id="confirm-password"
+                    secureTextEntry
+                    returnKeyType="next"
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                    onSubmitEditing={() => phoneInputRef.current?.focus()}
+                  />
+                )}
               />
+              {errors.confirmPassword && (
+                <Text className="text-red-500 text-xs">
+                  {errors.confirmPassword.message}
+                </Text>
+              )}
             </View>
 
             {/* Teléfono */}
             <View className="gap-1.5">
               <Label htmlFor="phone">Teléfono *</Label>
-              <Input
-                ref={phoneInputRef}
-                id="phone"
-                placeholder="0987654321"
-                inputMode="numeric"
-                maxLength={10}
-                returnKeyType="done"
-                value={phone}
-                onChangeText={setPhone}
-                editable={!loading}
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    ref={phoneInputRef}
+                    id="phone"
+                    placeholder="0987654321"
+                    inputMode="numeric"
+                    maxLength={10}
+                    returnKeyType="done"
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                  />
+                )}
               />
+              {errors.phone && (
+                <Text className="text-red-500 text-xs">
+                  {errors.phone.message}
+                </Text>
+              )}
             </View>
 
             {/* Fecha de nacimiento */}
             <View className="gap-1.5">
               <Label htmlFor="birthDate">Fecha de nacimiento *</Label>
-              <DatePicker
-                id="birthDate"
-                value={birthDate}
-                onChange={setBirthDate}
-                placeholder="Selecciona tu fecha de nacimiento"
-                mode="date"
-                maximumDate={maxDate}
-                minimumDate={minDate}
-                disabled={loading}
+              <Controller
+                control={control}
+                name="birthDate"
+                render={({ field: { onChange, value } }) => (
+                  <>
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                      <Input
+                        id="birthDate"
+                        placeholder="Fecha de nacimiento"
+                        value={
+                          value
+                            ? new Date(value).toLocaleDateString("es-ES", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+                            : ""
+                        }
+                        editable={false}
+                        pointerEvents="none"
+                      />
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={
+                          value || birthDate || maxDate || new Date(2000, 0, 1)
+                        }
+                        mode="date"
+                        display="spinner"
+                        maximumDate={maxDate}
+                        minimumDate={minDate}
+                        onChange={(event, selectedDate) => {
+                          setShowDatePicker(false);
+                          if (selectedDate && event.type === "set") {
+                            setBirthDate(selectedDate);
+                            onChange(selectedDate);
+                          }
+                        }}
+                      />
+                    )}
+                  </>
+                )}
               />
-              {birthDate && (
-                <Text className="text-xs text-muted-foreground">
-                  Edad: {calculateAge(birthDate)} años
+
+              {errors.birthDate && (
+                <Text className="text-red-500 text-xs">
+                  {errors.birthDate.message}
                 </Text>
               )}
             </View>
-
-            {/* Mensaje de error */}
-            {error && (
-              <View className="bg-destructive/10 border border-destructive rounded-md p-3">
-                <Text className="text-destructive text-sm">{error}</Text>
-              </View>
-            )}
 
             {/* Botón de registro */}
             <Button className="w-full" onPress={onSubmit} disabled={loading}>
