@@ -19,6 +19,7 @@ const Index = () => {
         title="Comprar Créditos"
         description="Adquiere créditos y mira la información de tus ofertas"
         iconName="card"
+        href={routes.client.buyCredits}
       />
 
       <CardHorizontal

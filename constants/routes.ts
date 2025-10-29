@@ -10,4 +10,7 @@ export const routes = {
       solicitar: "/servicios/solicitar" as const,
       missolicitudes: "/servicios/mis-solicitudes" as const,
     },
+    client: {
+      buyCredits: "/client/modal/buyCredits" as const,
+    },
   } as const;

@@ -22,8 +22,9 @@ const ModalsLayout = () => {
         }}
       />
       <Stack.Screen
-        name="creditos/index"
+        name="buyCredits/index"
         options={{
+          title: "Comprar Créditos",
           headerShown: true,
           // header: () => <CustomModalHeader title="Comprar Créditos" />,
         }}
