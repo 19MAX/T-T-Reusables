@@ -30,20 +30,6 @@ const ModalsLayout = () => {
         }}
       />
 
-      <Stack.Screen
-        name="ofertas/index"
-        options={{
-          headerShown: true,
-          // header: () => <CustomModalHeader title="Publicar Oferta" />,
-        }}
-      />
-      <Stack.Screen
-        name="servicio/index"
-        options={{
-          headerShown: true,
-          // header: () => <CustomModalHeader title="Publicar Oferta" />,
-        }}
-      />
     </Stack>
   );
 };

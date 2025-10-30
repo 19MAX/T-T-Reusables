@@ -41,6 +41,7 @@ export const useConsumeCredit = (
       const response = await api.creditos.usarCredito(clienteId);
 
       if (response.data) {
+        // console.log("Log en el hook donde consumo el credito :", response);
         setSuccess(true);
         setMessage(response.data.mensaje || "Crédito usado exitosamente");
 

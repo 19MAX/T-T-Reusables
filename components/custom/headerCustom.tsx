@@ -1,13 +1,15 @@
 import { Text } from "@/components/ui/text";
 import { useUserCredits } from "@/hooks/profile/useUserProfile";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { Badge } from "../ui/badge";
 import { UserMenu } from "./userMenuCustom";
@@ -119,17 +121,23 @@ export function CustomHomeHeader({
               zIndex: 1,
             }}
           />
-          <TextInput
-            className={`w-full ${
-              isDark ? "bg-card text-white" : "bg-white text-gray-900"
-            } rounded-2xl py-3 pl-12 pr-4 shadow-lg border ${
-              isDark ? "border-border" : "border-gray-200"
-            }`}
-            placeholder="Buscar un servicio..."
-            placeholderTextColor={isDark ? "#9CA3AF" : "#9CA3AF"}
-            value={searchText}
-            onChangeText={handleSearchChange}
-          />
+
+          <Pressable
+            onPress={() => router.push("/client/(tabs)/search")}
+          >
+            <TextInput
+              className={`w-full ${
+                isDark ? "bg-card text-white" : "bg-white text-gray-900"
+              } rounded-2xl py-3 pl-12 pr-4 shadow-lg border ${
+                isDark ? "border-border" : "border-gray-200"
+              }`}
+              placeholder="Buscar una oferta..."
+              placeholderTextColor={isDark ? "#9CA3AF" : "#9CA3AF"}
+              value={searchText}
+              onChangeText={handleSearchChange}
+              editable={false}
+            />
+          </Pressable>
         </View>
       </View>
     </View>

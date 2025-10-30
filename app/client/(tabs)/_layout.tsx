@@ -133,18 +133,6 @@ export default function TabsLayout() {
           // ),
         }}
       />
-      <Tabs.Screen
-        name="ofertas/index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="servicios/index"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }
